@@ -18,6 +18,7 @@ metadata {
 	definition (name: "SmartCam Motion Detection Switch", namespace: "airdrummingfool", author: "Tommy Goode") {
 		capability "Refresh"
 		capability "Switch"
+		capability "Health Check"
 
 		capability "Actuator"
 
@@ -74,6 +75,13 @@ def updated() {
 	// device.setDeviceNetworkId(makeNetworkID(state.cameraIP, state.cameraPort))
 	// log.debug("New DNI: ${device.deviceNetworkId}")
 
+	// Ping the camera every 5 minutes for health-check purposes
+	unschedule()
+	runEvery5Minutes(refresh)
+	// After checkInterval seconds have gone by, ST sends one last ping before marking as offline
+	// set checkInterval to the length of 2 failed health checks (plus an extra minute)
+	sendEvent(name: "checkInterval", value: 2 * 5 * 60 + 60, displayed: false, data: [protocol : "LAN"])
+
 	refresh()
 }
 
@@ -113,6 +121,11 @@ def parse(String description) {
 	else {
 		log.debug("parse() received failure message: ${msg}")
 	}
+}
+
+def ping() {
+	log.debug("ping()")
+	healthCheck()
 }
 
 def refresh() {
