@@ -145,7 +145,7 @@ def handleInformationResponse(response) {
 }
 
 def handleVideoanalysisResponse(response, lastRequest) {
-	log.debug("handleVideoanalysisResponse(): ${response}")
+	log.debug("handleVideoanalysisResponse()")
 	def state = "unknown"
 	if (lastRequest.method == "GET") {
 		def detectionType = response.data['Channel.0.DetectionType']
@@ -185,21 +185,21 @@ def retryLastRequest(data) {
 	}
 	log.debug("About to retry lastRequest: ${state.lastRequest}")
 	def action = createCameraRequest(state.lastRequest.method, state.lastRequest.uri, state.lastRequest.useAuth, state.lastRequest.payload, true)
-	log.debug("Created retry request: ${action}")
+	// log.debug("Created retry request: ${action}")
 	sendHubCommand(action)
 }
 
 def checkMotionDetectionSetting() {
 	log.debug("checkMotionDetectionSetting()")
 	def action = createCameraRequest("GET", "/stw-cgi-rest/eventsources/videoanalysis", true)
-	log.debug("checking motion detection setting with request: ${action}")
+	// log.debug("checking motion detection setting with request: ${action}")
 	sendHubCommand(action)
 }
 
 def setMotionDetectionSetting(on) {
 	def detectionType = on ? "MotionDetection" : "Off"
 	def action = createCameraRequest("PUT", "/stw-cgi-rest/eventsources/videoanalysis", true, [DetectionType: detectionType])
-	log.debug("Setting motion detection setting ${on} with request: ${action}")
+	// log.debug("Setting motion detection setting ${on} with request: ${action}")
 	sendHubCommand(action)
 }
 
@@ -235,15 +235,15 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 		if (useAuth && state.digestAuthFields) {
 			// Increment nonce count and generate new client nonce (cheat: just MD5 the nonce count)
 			if (!state.digestAuthFields.nc) {
-				log.debug("Resetting nc to 1")
+				// log.debug("Resetting nc to 1")
 				state.digestAuthFields.nc = 1
 			}
 			else {
 				state.digestAuthFields.nc = (state.digestAuthFields.nc + 1) % 1000
-				log.debug("Incremented nc: ${state.digestAuthFields.nc}")
+				// log.debug("Incremented nc: ${state.digestAuthFields.nc}")
 			}
 			state.digestAuthFields.cnonce = md5("${state.digestAuthFields.nc}")
-			log.debug("Updated cnonce: ${state.digestAuthFields.cnonce}")
+			// log.debug("Updated cnonce: ${state.digestAuthFields.cnonce}")
 
 			headers.Authorization = generateDigestAuthHeader(method, uri)
 		}
@@ -257,8 +257,7 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 			data.body = payload
 		}
 		def action = new physicalgraph.device.HubAction(data)
-		// def action = new physicalgraph.device.HubAction(data, null, [callback: calledBackHandler])
-		log.debug("Created new HubAction, requestId: ${action.requestId}")
+		// log.debug("Created new HubAction, requestId: ${action.requestId}")
 
 		// Persist request info in case we need to repeat it
 		state.lastRequest = [:]
@@ -277,6 +276,7 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 }
 
 private Map handleWWWAuthenticateHeader(header) {
+	log.debug("handleWWWAuthenticateHeader()")
 	// Create digestAuthFields map if it doesn't exist
 	if (!state.digestAuthFields) {
 		state.digestAuthFields = [:]
@@ -289,7 +289,7 @@ private Map handleWWWAuthenticateHeader(header) {
 		if (tokens[0] == "Digest realm") tokens[0] = "realm"
 		state.digestAuthFields[tokens[0]] = tokens[1].replaceAll("\"", "")
 	}
-	log.debug("Used authenticate header (${header}) to update digestAuthFields: ${state.digestAuthFields}")
+	// log.debug("Used authenticate header (${header}) to update digestAuthFields: ${state.digestAuthFields}")
 }
 
 private String generateDigestAuthHeader(method, uri) {
@@ -299,13 +299,13 @@ private String generateDigestAuthHeader(method, uri) {
 	response=MD5(HA1:nonce:nonceCount:cnonce:qop:HA2)
 	*/
 	def ha1 = md5("${state.cameraUsername}:${state.digestAuthFields.realm}:${state.cameraPassword}")
-	log.debug("ha1: ${ha1} (${state.cameraUsername}:${state.digestAuthFields.realm}:${state.cameraPassword})")
+	// log.debug("ha1: ${ha1} (${state.cameraUsername}:${state.digestAuthFields.realm}:${state.cameraPassword})")
 
 	def ha2 = md5("${method}:${uri}")
-	log.debug("ha2: ${ha2} (${method}:${uri})")
+	// log.debug("ha2: ${ha2} (${method}:${uri})")
 
 	def digestAuth = md5("${ha1}:${state.digestAuthFields.nonce}:${state.digestAuthFields.nc}:${state.digestAuthFields.cnonce}:${state.digestAuthFields.qop}:${ha2}")
-	log.debug("digestAuth: ${digestAuth} (${ha1}:${state.digestAuthFields.nonce}:${state.digestAuthFields.nc}:${state.digestAuthFields.cnonce}:${state.digestAuthFields.qop}:${ha2})")
+	// log.debug("digestAuth: ${digestAuth} (${ha1}:${state.digestAuthFields.nonce}:${state.digestAuthFields.nc}:${state.digestAuthFields.cnonce}:${state.digestAuthFields.qop}:${ha2})")
 	def authHeader = "Digest username=\"${state.cameraUsername}\", realm=\"${state.digestAuthFields.realm}\", nonce=\"${state.digestAuthFields.nonce}\", uri=\"${uri}\", qop=\"${state.digestAuthFields.qop}\", nc=\"${state.digestAuthFields.nc}\", cnonce=\"${state.digestAuthFields.cnonce}\", response=\"${digestAuth}\""
 	return authHeader
 }
