@@ -71,10 +71,6 @@ def updated() {
 		clearDigestAuthData()
 	}
 
-	// set a proper network Id of the device
-	// device.setDeviceNetworkId(makeNetworkID(state.cameraIP, state.cameraPort))
-	// log.debug("New DNI: ${device.deviceNetworkId}")
-
 	// Ping the camera every 5 minutes for health-check purposes
 	unschedule()
 	runEvery5Minutes(refresh)
@@ -225,6 +221,16 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 	if (state.cameraIP == null) {
 		log.debug("Cannot check motion detection status, IP address is not set.")
 		return null
+	}
+
+	// Make sure the NetworkID is set correctly
+	// This cannot be done in update() because ¯\_(ツ)_/¯
+	// ref: https://community.smartthings.com/t/what-happened-to-devicenetworkid/8174/97
+	def dni = makeNetworkID(state.cameraIP, state.cameraPort)
+	if (dni != device.deviceNetworkId) {
+		log.debug("DNI is outdated. Old DNI: ${device.deviceNetworkId}")
+		device.setDeviceNetworkId(dni)
+		log.debug("New DNI: ${device.deviceNetworkId}")
 	}
 
 	try {
