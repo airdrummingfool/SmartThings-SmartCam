@@ -27,6 +27,7 @@ metadata {
 
 	tiles(scale: 2) {
 		standardTile("switchDisplayAction", "device.switch", inactiveLabel: true, width:6, height:1, decoration: "flat") {
+			state "unknown", label:'check configuration', icon:"st.Home.home9", backgroundColor:"#e50000"
 			state "on", label:'${name}', action:"off", icon:"st.Home.home9", backgroundColor:"#00a0dc", nextState:"off"
 			state "off", label:'${name}', action:"on", icon:"st.Home.home9", backgroundColor:"#ffffff", nextState:"on"
 		}
@@ -49,7 +50,7 @@ metadata {
 
 def installed() {
 	log.debug("installed()")
-	updated()
+	sendEvent(name:"switch", value:"unknown")
 }
 
 def updated() {
@@ -237,7 +238,6 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 		def headers = [
 			HOST: "${state.cameraIP}:${state.cameraPort}"
 		]
-
 		if (useAuth && state.digestAuthFields) {
 			// Increment nonce count and generate new client nonce (cheat: just MD5 the nonce count)
 			if (!state.digestAuthFields.nc) {
@@ -253,15 +253,16 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 
 			headers.Authorization = generateDigestAuthHeader(method, uri)
 		}
+
 		def data = [
 			method: method,
 			path: uri,
 			headers: headers
-			// @TODO: pass DNI here? http://docs.smartthings.com/en/latest/ref-docs/hubaction-ref.html?highlight=mac%20address
 		]
 		if (payload) {
 			data.body = payload
 		}
+
 		def action = new physicalgraph.device.HubAction(data)
 		// log.debug("Created new HubAction, requestId: ${action.requestId}")
 
