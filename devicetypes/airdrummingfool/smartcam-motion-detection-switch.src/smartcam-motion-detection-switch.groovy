@@ -82,6 +82,11 @@ def updated() {
 	refresh()
 }
 
+def parseResponse(physicalgraph.device.HubResponse response) {
+	log.debug("parseResponse()")
+	return parse(response.description)
+}
+
 def parse(String description) {
 	log.debug("parse()")
 	def msg = parseLanMessage(description)
@@ -224,16 +229,6 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 		return null
 	}
 
-	// Make sure the NetworkID is set correctly
-	// This cannot be done in update() because ¯\_(ツ)_/¯
-	// ref: https://community.smartthings.com/t/what-happened-to-devicenetworkid/8174/97
-	def dni = makeNetworkID(state.cameraIP, state.cameraPort)
-	if (dni != device.deviceNetworkId) {
-		log.debug("DNI is outdated. Old DNI: ${device.deviceNetworkId}")
-		device.setDeviceNetworkId(dni)
-		log.debug("New DNI: ${device.deviceNetworkId}")
-	}
-
 	try {
 		def headers = [
 			HOST: "${state.cameraIP}:${state.cameraPort}"
@@ -263,7 +258,8 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 			data.body = payload
 		}
 
-		def action = new physicalgraph.device.HubAction(data)
+		// Use a custom callback because this seems to bypass the need for DNI to be hex IP:port or MAC address
+		def action = new physicalgraph.device.HubAction(data, null, [callback: parseResponse])
 		// log.debug("Created new HubAction, requestId: ${action.requestId}")
 
 		// Persist request info in case we need to repeat it
@@ -320,12 +316,4 @@ private String generateDigestAuthHeader(method, uri) {
 private String md5(String str) {
 	def digest = java.security.MessageDigest.getInstance("MD5").digest(str.getBytes("UTF-8"))
 	return digest.encodeHex() as String
-}
-
-private String makeNetworkID(ip, port) {
-	String hexIP = ip.tokenize('.').collect {
-		String.format('%02X', it.toInteger())
-	}.join()
-	String hexPort = String.format('%04X', port)
-	return "${hexIP}:${hexPort}"
 }
