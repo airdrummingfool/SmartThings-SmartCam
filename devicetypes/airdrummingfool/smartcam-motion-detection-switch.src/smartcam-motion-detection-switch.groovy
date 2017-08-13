@@ -281,7 +281,7 @@ private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth 
 	}
 }
 
-private Map handleWWWAuthenticateHeader(header) {
+private void handleWWWAuthenticateHeader(header) {
 	log.debug("handleWWWAuthenticateHeader()")
 	// Create digestAuthFields map if it doesn't exist
 	if (!state.digestAuthFields) {
@@ -289,9 +289,8 @@ private Map handleWWWAuthenticateHeader(header) {
 	}
 
 	// `Digest realm="iPolis", nonce="abc123", qop="auth"`
-	def tokens = []
 	header.tokenize(',').collect {
-		tokens = it.trim().tokenize('=')
+		def tokens = it.trim().tokenize('=')
 		if (tokens[0] == "Digest realm") tokens[0] = "realm"
 		state.digestAuthFields[tokens[0]] = tokens[1].replaceAll("\"", "")
 	}
