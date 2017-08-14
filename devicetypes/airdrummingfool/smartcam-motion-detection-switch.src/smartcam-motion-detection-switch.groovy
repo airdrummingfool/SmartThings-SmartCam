@@ -39,7 +39,7 @@ metadata {
 		}
 
 		main "switchDisplayAction"
-		details(["switchDisplayAction", "refresh", "clearDigestAuthData"])
+		details(["switchDisplayAction", "refresh"])
 	}
 
 	preferences {
@@ -54,7 +54,6 @@ def installed() {
 }
 
 def updated() {
-	// User updated preferences!
 	log.debug("updated()")
 
 	if (state.cameraIP != cameraIP) {
@@ -68,15 +67,15 @@ def updated() {
 
 	if (state.cameraPassword != cameraPassword) {
 		state.cameraPassword = cameraPassword
-		log.debug("New Camera Password: ${state.cameraPassword}")
+		log.debug("New Camera Password")
 		clearDigestAuthData()
 	}
 
 	// Ping the camera every 5 minutes for health-check purposes
 	unschedule()
 	runEvery5Minutes(refresh)
-	// After checkInterval seconds have gone by, ST sends one last ping before marking as offline
-	// set checkInterval to the length of 2 failed health checks (plus an extra minute)
+	// After checkInterval seconds have gone by, ST sends one last ping() before marking as offline
+	// set checkInterval to the length of 2 failed refresh()es (plus an extra minute)
 	sendEvent(name: "checkInterval", value: 2 * 5 * 60 + 60, displayed: false, data: [protocol : "LAN"])
 
 	refresh()
@@ -98,7 +97,7 @@ def parse(String description) {
 	}
 
 	if (msg.status == 200) {
-		// Delete last request info, since it succeeded
+		// Delete last request info since it succeeded
 		def lastRequest = state.lastRequest
 		state.remove("lastRequest")
 
@@ -154,7 +153,7 @@ def handleVideoanalysisResponse(response, lastRequest) {
 		state = (detectionType == "Off" ? "off" : "on")
 	}
 	else if (lastRequest.method == "PUT") {
-		// resonse.data is empty on success, we must use lastRequest data
+		// resonse.data is empty on PUT success, we must use lastRequest data
 		def detectionType = lastRequest.payload['DetectionType']
 		state = (detectionType == "Off" ? "off" : "on")
 	}
@@ -166,16 +165,14 @@ def handleNeedsAuthResponse(msg) {
 	log.debug("needsAuthResponse(), headers: ${msg.headers}, requestId: ${msg.requestId}")
 
 	// Parse out the digest auth fields
-	def wwwAuthHeader = msg.headers['www-authenticate'];
+	def wwwAuthHeader = msg.headers['www-authenticate']
 	handleWWWAuthenticateHeader(wwwAuthHeader)
 
-	// Retry the request (only once)
+	// Retry the request if we haven't already
 	if (!state.lastRequest || state.lastRequest.isRetry) {
 		return
 	}
 
-	// Works: 15, 10, 5, 1!, 0!!
-	// runIn(0, retryLastRequest, [data: [requestId: msg.requestId]])
 	retryLastRequest([requestId: msg.requestId])
 }
 
@@ -224,8 +221,8 @@ def clearDigestAuthData() {
 private physicalgraph.device.HubAction createCameraRequest(method, uri, useAuth = false, payload = null, isRetry = false) {
 	log.debug("Creating camera request with method: ${method}, uri: ${uri}, payload: ${payload}, isRetry: ${isRetry}")
 
-	if (state.cameraIP == null) {
-		log.debug("Cannot check motion detection status, IP address is not set.")
+	if (state.cameraIP == null || state.cameraPassword == null) {
+		log.debug("Cannot check motion detection status, IP address or password is not set.")
 		return null
 	}
 
