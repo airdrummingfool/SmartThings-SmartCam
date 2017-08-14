@@ -28,8 +28,10 @@ metadata {
 	tiles(scale: 2) {
 		standardTile("switchDisplayAction", "device.switch", inactiveLabel: true, width:6, height:1, decoration: "flat") {
 			state "unknown", label:'check configuration', icon:"st.Home.home9", backgroundColor:"#e50000"
-			state "on", label:'${name}', action:"off", icon:"st.Home.home9", backgroundColor:"#00a0dc", nextState:"off"
-			state "off", label:'${name}', action:"on", icon:"st.Home.home9", backgroundColor:"#ffffff", nextState:"on"
+			state "turningon", label:'turning on', icon:"st.Home.home9", backgroundColor:"#00a0dc", nextState:"on"
+			state "on", label:'${name}', action:"off", icon:"st.Home.home9", backgroundColor:"#00a0dc", nextState:"turningoff"
+			state "turningoff", label:'turning off', icon:"st.Home.home9", backgroundColor:"#ffffff", nextState:"off"
+			state "off", label:'${name}', action:"on", icon:"st.Home.home9", backgroundColor:"#ffffff", nextState:"turningon"
 		}
 		standardTile("refresh", "device.switch", width: 2, height: 2, decoration: "flat") {
 			state "icon", action:"refresh", icon:"st.secondary.refresh", defaultState: true
