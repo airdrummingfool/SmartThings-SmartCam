@@ -14,6 +14,7 @@ The device handler takes care of the required Digest authentication for communic
 This device handler has been tested on the following models/firmware versions. If you use it with a different setup, please let me know and I'll update this list.
 
 * SNH-P6410BN (`1.08_160629`)
+* SNH-V6414BN (`1.13_170214`)
 
 
 ## Installation
